@@ -8,6 +8,7 @@ options('scipen' = 50, stringsAsFactors = FALSE)
 ###                          Load data from exported csv                                  ###
 ###                            from access database.                                      ###
 ###            In future, this will be a part of the grab data entry process              ###
+###               Change this to load dataframes from data entry process                  ###
 #############################################################################################
 
 ## Read copy of t_results as of 2/2/18
@@ -376,6 +377,16 @@ anom_grade_totals <- preliminary_DQL %>%
   anom_BelowLOQ,
 )
 
+finalgradetotals <- anom_grade_totals %>%
+  group_by(final_DQL) %>%
+  summarise(n())
+
+
+
+#check to see if successful
+print(paste0("Number of results to grade: ",nrow(res_grab)))
+print(paste0("Number of results graded: ",nrow(anom_grade_totals)))
+print(paste0("Percent successful: ", (nrow(res_grab)/nrow(anom_grade_totals)*100)))
 
 
 # This gets sent back to access for review and update
