@@ -268,7 +268,7 @@ act_dup_fix <- grade_prelim_DQL %>%
   group_by(ResultID) %>%
   #if resuly only has 1 activity group, use the prelim DQL
   #if result has > 1 activity and is not E, use the lowest tier
-  #if result has < 1 activity and is E, use the second lowest tier
+  #if result has > 1 activity and is E, use the second lowest tier
   mutate(fixed_DQL = ifelse(sum_actgrp_char == 1, prelim_DQL,
                             ifelse(
                               max(prelim_DQL != "E"),
@@ -357,15 +357,30 @@ anom_grade_totals <- preliminary_DQL %>%
                      ifelse(prelim_DQL < "C" & anom_sub_95 > 0 & anom_amb_95 >0, "Anom",
                      ifelse(prelim_DQL < "C" & anom_amb_95 > 0 & anom_WQS > 0, "Anom",
                      ifelse(prelim_DQL < "C" & anom_WQS > 0, "Anom", prelim_DQL
-                            )))))
+                            ))))) %>%
+  select(
+  ResultID,
+  ActivityID,
+  CharID,
+  StartDateTime,
+  Result,
+  RsltQual,
+  Unit,
+  DEQ_PREC,
+  prelim_DQL,
+  final_DQL,
+  anom_sub_95,
+  anom_amb_99,
+  anom_amb_95,
+  anom_WQS,
+  anom_BelowLOQ,
+)
 
 
 
+# This gets sent back to access for review and update
+write.csv(anom_grade_totals, file = "grabdataforreview.csv")
 
-
-#This is the table for results to review
-Results_to_review <- anom_grade_totals %>%
-  filter(final_DQL == "Anom")
 
 
 
@@ -375,7 +390,7 @@ Results_to_review <- anom_grade_totals %>%
 # DONE - check results for anomalies
 # DONE - Assign final grades to non-anomalous results
 # DONE - Flag Anomalous results
-# Figure out how to display for review
+# DONE - Figure out how to display for review
 
 
 
