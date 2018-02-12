@@ -21,7 +21,9 @@ anom <- read.csv("//deqlab1/Assessment/AWQMS/VOLMON/Tiering/Travis/t_Anomaly.csv
 Actgrp <- read.csv("//deqlab1/Assessment/AWQMS/VOLMON/Tiering/Travis/tjct_ActGrp2Act.csv")
 
 ##table linking activity info
-Act <-read.csv("//deqlab1/Assessment/AWQMS/VOLMON/Tiering/Travis/t_Activity.csv")
+Act <- read.csv("//deqlab1/Assessment/AWQMS/VOLMON/Tiering/Travis/t_Activity.csv")
+
+
 
 ##############################################################################################
 ###             Combine results with activity and activity group information               ###
@@ -39,6 +41,8 @@ res_act_grp <-
   mutate(ActGrpID = ifelse(is.na(ActGrpID), "XXXX",ActGrpID)) %>%
   mutate(sub_char = paste(SubID, CharID, sep = "-")) %>%
   mutate(actgrp_char = paste(ActGrpID, CharID, sep = "-"))
+
+
 
 
 ###################################################################################################
@@ -133,7 +137,6 @@ QAQC_num_dup_by_act_grp <- res_act_grp %>%
 Act_grp_char_QAQC <- QAQC_num_dup_by_act_grp %>%
   full_join(QAQC_grade_count, by = "actgrp_char") %>%
   full_join(QAQC_grades_per_sub, by = "sub_char") %>%
-  
   replace(is.na(.), 0)
 
 
@@ -350,7 +353,7 @@ anom_res_sum = res_anom %>%
   
 
 #if no anoms that would trigger review, set prelim_DQL to final_DQL
-#This is where you would change anom factors that would trigger review
+#This gets uploaded to access
 
 anom_grade_totals <- preliminary_DQL %>%
   left_join(anom_res_sum, by = "ResultID") %>%
