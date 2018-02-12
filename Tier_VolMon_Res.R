@@ -362,23 +362,25 @@ anom_grade_totals <- preliminary_DQL %>%
                      ifelse(prelim_DQL < "C" & anom_amb_95 > 0 & anom_WQS > 0, "Anom",
                      ifelse(prelim_DQL < "C" & anom_WQS > 0, "Anom", prelim_DQL
                             ))))) %>%
+  mutate(DQLCmt = "") %>%
   select(
-  ResultID,
-  ActivityID,
-  CharID,
-  StartDateTime,
-  Result,
-  RsltQual,
-  Unit,
-  DEQ_PREC,
-  prelim_DQL,
-  final_DQL,
-  anom_sub_95,
-  anom_amb_99,
-  anom_amb_95,
-  anom_WQS,
-  anom_BelowLOQ,
-)
+    ResultID,
+    ActivityID,
+    CharID,
+    StartDateTime,
+    Result,
+    RsltQual,
+    Unit,
+    DEQ_PREC,
+    prelim_DQL,
+    final_DQL,
+    anom_sub_95,
+    anom_amb_99,
+    anom_amb_95,
+    anom_WQS,
+    anom_BelowLOQ,
+    DQLCmt
+  )
 
 finalgradetotals <- anom_grade_totals %>%
   group_by(final_DQL) %>%
