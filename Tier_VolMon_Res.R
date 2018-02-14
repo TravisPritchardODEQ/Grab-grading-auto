@@ -459,6 +459,7 @@ DQLs_actgrp <- DQLs %>%
 # DONE - Flag Anomalous results
 # DONE - Figure out how to display for review
 # Add DQLs to  res_actgrp_no_anom
+# create access update query to write Final DQLs to ORDEQ_DQL 
 
 
 
