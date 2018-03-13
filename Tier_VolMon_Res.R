@@ -152,9 +152,11 @@ grade_Act_grp_prelim_grade <- Act_grp_char_QAQC %>%
                       ifelse(pctC == 1, "C", #100% QC samples = C assign C
                       ifelse(pctA == 0 & pctB == 0 & pctC == 0, 
                              #default QC method if no QC samples
+                             #if submission has >5 QC samples, 100% of those are A or B, and 
+                             #=> 90% are A, then use B. Else, E
                              ifelse(Count_of_sub_QC > 5 & subpctA + subpctB == 1 & subpctA >= 0.90, "B", "E"), 
                       ifelse(pctA < 1 | pctB < 1 | pctC < 1 | pctE < 1, "Mixed", #if grades are mixed, assign mixed
-                            "not yet graded")))))) %>% #Should never be not yet graded
+                            "not yet graded")))))) %>% #Should never be "not yet graded" 
   select(actgrp_char, sub_char, prelim_dql)  #pare down table to make more manageable 
 
 
