@@ -69,6 +69,7 @@ res_QAQC <- res_act_grp %>%
     StartDateTime,
     DEQ_PREC,
     sub_char,
+    QCorigDQL
   )
 
 #Create a table that counts Grade types by actgrp_char
