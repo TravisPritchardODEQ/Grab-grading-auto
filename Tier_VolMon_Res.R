@@ -35,6 +35,9 @@ Actgrp <- sqlFetch(ch, "tjct_ActGrp2Act")
 Act <-sqlFetch(ch, "t_Activity")
 
 
+odbcClose(ch)
+
+
 
 ##############################################################################################
 ###             Combine results with activity and activity group information               ###
