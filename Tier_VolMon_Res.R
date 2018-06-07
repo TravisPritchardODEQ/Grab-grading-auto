@@ -407,9 +407,9 @@ finalgradetotals <- anom_grade_totals %>%
 
 
 #check to see if successful
-print(paste0("Number of results to grade: ",nrow(res_grab)))
+print(paste0("Number of results to grade: ",nrow(res)))
 print(paste0("Number of results graded: ",nrow(anom_grade_totals)))
-print(paste0("Percent successful: ", (nrow(res_grab)/nrow(anom_grade_totals)*100)))
+print(paste0("Percent successful: ", (nrow(res)/nrow(anom_grade_totals)*100)))
 
 
 # This gets sent back to access for review and update
@@ -418,55 +418,60 @@ write.csv(anom_grade_totals, file = "grabdataforreview.csv")
 
 
 
-# To calculate which actgrps have no anoms
-# Create table of results with their DQLs 
-DQLs <- anom_grade_totals %>%
-  select(ResultID,
-         final_DQL) %>%
-  right_join(res_act_grp, by = 'ResultID')
-
-
-# Summarise grades per Activity Group
-DQLs_actgrp <- DQLs %>%
-  group_by(ActGrpID) %>%
-  summarise(SubID = first(SubID),
-            sumA = sum(final_DQL == "A"),
-            sumB = sum(final_DQL == "B"),
-            sumC = sum(final_DQL == "C"),
-            sumE = sum(final_DQL == "E"),
-            sumAnom = sum(final_DQL == "Anom")) %>%
-  mutate(count = sumA + sumB + sumC + sumE + sumAnom) 
-
-
-
-#Create table of activity Groups with no anomolies.
- DQLs_actgrp_noanoms <- DQLs_actgrp %>%
-  filter(sumAnom == 0)
-
- # results table for activity groups with no anomolies
- #Need to add in DQLs here
- res_actgrp_no_anom <- DQLs_actgrp_noanoms %>%
-   mutate(no_anoms = "TRUE") %>%
-   select(ActGrpID, no_anoms) %>%
-   left_join(res_act_grp, by = "ActGrpID") %>%
-   select(-no_anoms)
- 
-
- # Summarise grades per Submission and find out percent that needs review
- DQLs_sub_prct <- DQLs %>%
-  group_by(SubID) %>%
-  summarise( sumA = sum(final_DQL == "A"),
-             sumB = sum(final_DQL == "B"),
-             sumC = sum(final_DQL == "C"),
-             sumE = sum(final_DQL == "E"),
-             sumAnom = sum(final_DQL == "Anom")) %>%
-  mutate(count = sumA + sumB + sumC + sumE + sumAnom) %>% 
-  mutate(prct_anom = 100* sumAnom  / count )
-  
-
- #Write tables
- write.csv(DQLs_sub_prct, file = "DQLs_sub_prct.csv")
- write.csv(res_actgrp_no_anom, file = "res_actgrp_no_anom.csv" )
+####################################################################################
+### I don't remember why I wrote this review section. I am commenting out unless ### 
+###                          we find out later we need it.                       ###
+####################################################################################
+# 
+# # To calculate which actgrps have no anoms
+# # Create table of results with their DQLs 
+# DQLs <- anom_grade_totals %>%
+#   select(ResultID,
+#          final_DQL) %>%
+#   right_join(res_act_grp, by = 'ResultID')
+# 
+# 
+# # Summarise grades per Activity Group
+# DQLs_actgrp <- DQLs %>%
+#   group_by(ActGrpID) %>%
+#   summarise(SubID = first(SubID),
+#             sumA = sum(final_DQL == "A"),
+#             sumB = sum(final_DQL == "B"),
+#             sumC = sum(final_DQL == "C"),
+#             sumE = sum(final_DQL == "E"),
+#             sumAnom = sum(final_DQL == "Anom")) %>%
+#   mutate(count = sumA + sumB + sumC + sumE + sumAnom) 
+# 
+# 
+# 
+# #Create table of activity Groups with no anomolies.
+#  DQLs_actgrp_noanoms <- DQLs_actgrp %>%
+#   filter(sumAnom == 0)
+# 
+#  # results table for activity groups with no anomolies
+#  #Need to add in DQLs here
+#  res_actgrp_no_anom <- DQLs_actgrp_noanoms %>%
+#    mutate(no_anoms = "TRUE") %>%
+#    select(ActGrpID, no_anoms) %>%
+#    left_join(res_act_grp, by = "ActGrpID") %>%
+#    select(-no_anoms)
+#  
+# 
+#  # Summarise grades per Submission and find out percent that needs review
+#  DQLs_sub_prct <- DQLs %>%
+#   group_by(SubID) %>%
+#   summarise( sumA = sum(final_DQL == "A"),
+#              sumB = sum(final_DQL == "B"),
+#              sumC = sum(final_DQL == "C"),
+#              sumE = sum(final_DQL == "E"),
+#              sumAnom = sum(final_DQL == "Anom")) %>%
+#   mutate(count = sumA + sumB + sumC + sumE + sumAnom) %>% 
+#   mutate(prct_anom = 100* sumAnom  / count )
+#   
+# 
+#  #Write tables
+#  write.csv(DQLs_sub_prct, file = "DQLs_sub_prct.csv")
+#  write.csv(res_actgrp_no_anom, file = "res_actgrp_no_anom.csv" )
 
 
 # To do:
