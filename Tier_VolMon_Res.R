@@ -1,27 +1,38 @@
 library(tidyverse)
 library(sqldf)
+library(RODBC)
 
 #This prevents scientific notation from being used and forces all imported fields to be character or numeric
 options('scipen' = 50, stringsAsFactors = FALSE)
 
 #############################################################################################
-###                          Load data from exported csv                                  ###
-###                            from access database.                                      ###
-###            In future, this will be a part of the grab data entry process              ###
-###               Change this to load dataframes from data entry process                  ###
+###                                  Load data from database                              ###
 #############################################################################################
 
-## Read copy of t_results as of 2/2/18
-res <- read.csv("//deqlab1/Assessment/AWQMS/VOLMON/Tiering/Travis/t_Result.csv")
 
-## read copy of t_anomaly as of 2/2/18
-anom <- read.csv("//deqlab1/Assessment/AWQMS/VOLMON/Tiering/Travis/t_Anomaly.csv")
+ch <- odbcConnectAccess2007("//deqlab1/wqm/Volunteer Monitoring/datamanagement/VolWQdb.mdb", case="nochange")
 
-## Table linking activity ID and activity group
-Actgrp <- read.csv("//deqlab1/Assessment/AWQMS/VOLMON/Tiering/Travis/tjct_ActGrp2Act.csv")
 
-##table linking activity info
-Act <- read.csv("//deqlab1/Assessment/AWQMS/VOLMON/Tiering/Travis/t_Activity.csv")
+
+
+## Pull Preliminary Results from VolWQdb 
+res <-
+  sqlQuery(
+    ch,
+    "SELECT t_Result.ResultID, t_Result.ActivityID, t_Result.CharID, t_Result.Result, t_Result.RsltQual, t_Result.Unit, t_Result.Method, t_Result.MethodSpeciation, t_Result.RsltType, t_Result.AnalyticalLaboratory, t_Result.AnalyticalStartTime, t_Result.AnalyticalStartTimeZone, t_Result.AnalyticalEndTime, t_Result.AnalyticalEndTimeZone, t_Result.LabCommentCode, t_Result.LOQ, t_Result.LOQ_Unit, t_Result.QCorigACC, t_Result.QCorigPREC, t_Result.QCorigDQL, t_Result.DEQ_ACC, t_Result.DEQ_PREC, t_Result.BiasValue, t_Result.PrecisionValue, t_Result.ORDEQ_DQL, t_Result.StatisticalBasis, t_Result.RsltTimeBasis, t_Result.StoretQual, t_Result.RsltStatus, t_Result.Org_RsltComment, t_Result.DEQ_RsltComment
+    FROM t_Result
+    WHERE (((t_Result.RsltStatus)='Preliminary'));
+    "
+  )
+
+## pull t_anomaly from VolWQdb
+anom <- sqlFetch(ch, "t_Anomaly")
+
+## pull t_ActGrp from VolWQdb
+Actgrp <- sqlFetch(ch, "tjct_ActGrp2Act") 
+
+## pull t_Activity from VolWQdb
+Act <-sqlFetch(ch, "t_Activity")
 
 
 
@@ -29,11 +40,10 @@ Act <- read.csv("//deqlab1/Assessment/AWQMS/VOLMON/Tiering/Travis/t_Activity.csv
 ###             Combine results with activity and activity group information               ###
 ##############################################################################################
 
-#filter out continuous data
-res_grab <- filter(res, RsltStatus == "Preliminary")
+
 
 # adds activity data to the resutls table
-res_act <- merge(res_grab, Act, by = "ActivityID", all.x = TRUE)
+res_act <- merge(res, Act, by = "ActivityID", all.x = TRUE)
 
 #adds Activity Group data to results - activity table
 res_act_grp <-
@@ -68,8 +78,8 @@ res_QAQC <- res_act_grp %>%
     SubID,
     StartDateTime,
     DEQ_PREC,
-    sub_char,
-    QCorigDQL
+    QCorigDQL,
+    sub_char
   )
 
 #Create a table that counts Grade types by actgrp_char
@@ -374,6 +384,7 @@ anom_grade_totals <- preliminary_DQL %>%
     Result,
     RsltQual,
     Unit,
+    QCorigDQL,
     DEQ_PREC,
     prelim_DQL,
     final_DQL,
@@ -384,6 +395,7 @@ anom_grade_totals <- preliminary_DQL %>%
     anom_BelowLOQ,
     DQLCmt
   )
+
 
 finalgradetotals <- anom_grade_totals %>%
   group_by(final_DQL) %>%
