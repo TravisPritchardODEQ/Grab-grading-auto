@@ -63,6 +63,7 @@ res_act_grp <-
 ###################################################################################################
 
 #Create table of only QAQC Samples and their precision grades
+# add storet qual
 res_QAQC <- res_act_grp %>%
   filter(
     ActivityType != "FM",
@@ -82,7 +83,8 @@ res_QAQC <- res_act_grp %>%
     StartDateTime,
     DEQ_PREC,
     QCorigDQL,
-    sub_char
+    sub_char,
+    StoretQual
   )
 
 #Create a table that counts Grade types by actgrp_char
@@ -140,9 +142,11 @@ QAQC_num_dup_by_sub <- res_act_grp %>%
 
 #Table for number of QAQC Samples Per activity group
 QAQC_num_dup_by_act_grp <- res_act_grp %>%
-  mutate(Count_of_act_Q = (if_else((ActivityType == "QFQMR" | ActivityType == "QLQD"), 1, 0))) %>%
+  mutate(Count_of_act_Q = (if_else((ActivityType == "QFQMR" | ActivityType == "QLQD"), 1, 0)),
+         Count_of_act_non_Q = (if_else((ActivityType == "QFQMR" | ActivityType == "QLQD"), 0, 1))) %>%
   group_by(actgrp_char, sub_char) %>%
-  summarise(Count_of_act_QC = sum(Count_of_act_Q)) %>%
+  summarise(Count_of_act_QC = sum(Count_of_act_Q),
+            Count_of_act_noQC = sum(Count_of_act_non_Q)) %>%
   full_join(QAQC_num_dup_by_sub, by = "sub_char")
  
 
@@ -161,7 +165,8 @@ Act_grp_char_QAQC <- QAQC_num_dup_by_act_grp %>%
 
 #assign preliminary DQLs to an Activity group characteristic
 grade_Act_grp_prelim_grade <- Act_grp_char_QAQC %>%
-  mutate(prelim_dql = ifelse(pctA == 1, "A", #100% QC samples = A assign A
+  mutate(prelim_dql = ifelse(Count_of_act_QC / Count_of_act_noQC < 0.1, paste0("QC ", as.integer((Count_of_act_QC / Count_of_act_noQC)*100),"%"),
+                      ifelse(pctA == 1, "A", #100% QC samples = A assign A
                       ifelse(pctB == 1, "B", #100% QC samples = B assign B
                       ifelse(pctC == 1, "C", #100% QC samples = C assign C
                       ifelse(pctA == 0 & pctB == 0 & pctC == 0, 
@@ -170,7 +175,7 @@ grade_Act_grp_prelim_grade <- Act_grp_char_QAQC %>%
                              #=> 90% are A, then use B. Else, E
                              ifelse(Count_of_sub_QC > 5 & subpctA + subpctB == 1 & subpctA >= 0.90, "B", "E"), 
                       ifelse(pctA < 1 | pctB < 1 | pctC < 1 | pctE < 1, "Mixed", #if grades are mixed, assign mixed
-                            "not yet graded")))))) %>% #Should never be "not yet graded" 
+                            "not yet graded"))))))) %>% #Should never be "not yet graded" 
   select(actgrp_char, sub_char, prelim_dql)  #pare down table to make more manageable 
 
 
@@ -371,13 +376,17 @@ anom_res_sum = res_anom %>%
 #if no anoms that would trigger review, set prelim_DQL to final_DQL
 #This gets uploaded to access
 
+#sets final DQL based on anomalies and % QC samples
 anom_grade_totals <- preliminary_DQL %>%
   left_join(anom_res_sum, by = "ResultID") %>%
   mutate(final_DQL = ifelse(prelim_DQL < "C" & anom_amb_99 > 0, "Anom", 
                      ifelse(prelim_DQL < "C" & anom_sub_95 > 0 & anom_amb_95 >0, "Anom",
                      ifelse(prelim_DQL < "C" & anom_amb_95 > 0 & anom_WQS > 0, "Anom",
-                     ifelse(prelim_DQL < "C" & anom_WQS > 0, "Anom", prelim_DQL
-                            ))))) %>%
+                     ifelse(prelim_DQL < "C" & anom_WQS > 0, "Anom", 
+                     # > H in order to get prelim DQLs that start with QC %....
+                     ifelse(prelim_DQL > "H", "Anom", prelim_DQL
+                            )))))) %>%
+  # add if "QC < X" then final_DQL = "Anom" 
   mutate(DQLCmt = "") %>%
   select(
     ResultID,
@@ -386,6 +395,7 @@ anom_grade_totals <- preliminary_DQL %>%
     StartDateTime,
     Result,
     RsltQual,
+    StoretQual,
     Unit,
     QCorigDQL,
     DEQ_PREC,
