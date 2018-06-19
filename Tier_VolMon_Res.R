@@ -178,6 +178,8 @@ grade_Act_grp_prelim_grade <- Act_grp_char_QAQC %>%
                             "not yet graded"))))))) %>% #Should never be "not yet graded" 
   select(actgrp_char, sub_char, prelim_dql)  #pare down table to make more manageable 
 
+mixed <- grade_Act_grp_prelim_grade %>%
+  filter(prelim_dql == "Mixed")
 
 
 #Push act_grp prelim DQLs to results
@@ -206,16 +208,23 @@ grade_mixed_res_prelim_dql$StartDateTime = as.POSIXct(grade_mixed_res_prelim_dql
 # Add another column to indicate a row contains Max date for that group
 QC_Mod <- Grade_mixed_QC %>%
   group_by(actgrp_char) %>%
-  mutate(IsMaxDate = ifelse(StartDateTime == max(StartDateTime),1,0)) %>%
-  mutate(ApplicableAfter = lag(StartDateTime)) %>%
-  mutate(MaXDate = max(StartDateTime)) %>%
-  ungroup() %>%
+  mutate(groupposition = 1:n(),
+         IsMaxDate = ifelse(StartDateTime == max(StartDateTime),1,0),
+         MaXDate = max(StartDateTime)) %>%
+  mutate(ApplicableAfter =if_else(DEQ_PREC > lead(DEQ_PREC, n = 1) & groupposition == 1, StartDateTime,
+                                  if_else(DEQ_PREC > lag(DEQ_PREC, n = 1), lag(StartDateTime),
+                                  if_else(DEQ_PREC > lead(DEQ_PREC, n = 1), StartDateTime, 
+                                  if_else(StartDateTime == MaXDate, StartDateTime, StartDateTime + 100))))) %>%
+    ungroup() %>%
   group_by(actgrp_char, StartDateTime) %>%
   #if more than 1 QC sample exists for a day, choose the lowest value 
   #(max is used because A < B )
   mutate(Mod_DEQ_PREC = max(DEQ_PREC)) %>%
   as.data.frame()
 
+QCmodtest <- QC_Mod %>%
+  filter(actgrp_char == "0050-20130813-ec") %>%
+  select(ResultID, StartDateTime, DEQ_PREC,IsMaxDate, ApplicableAfter, MaXDate, Mod_DEQ_PREC, groupposition )
 
   
 # Join the data.frames to find DQL value
@@ -224,12 +233,18 @@ QC_Mod <- Grade_mixed_QC %>%
 
 grade_mixed_result <-
   sqldf(
-    "SELECT grade_mixed_res_prelim_dql.actgrp_char, grade_mixed_res_prelim_dql.ResultID,  grade_mixed_res_prelim_dql.Result,  grade_mixed_res_prelim_dql.StartDateTime , QC_Mod.Mod_DEQ_PREC as prelim_dql
+    "SELECT grade_mixed_res_prelim_dql.actgrp_char, grade_mixed_res_prelim_dql.ResultID, 
+            grade_mixed_res_prelim_dql.Result,  grade_mixed_res_prelim_dql.StartDateTime ,
+            QC_Mod.DEQ_PREC as prelim_dql
     FROM grade_mixed_res_prelim_dql, QC_Mod
     WHERE grade_mixed_res_prelim_dql.actgrp_char == QC_Mod.actgrp_char AND
     (
-    (grade_mixed_res_prelim_dql.StartDateTime <= QC_Mod.StartDateTime AND QC_Mod.ApplicableAfter IS NULL) OR
-    (QC_Mod.ApplicableAfter IS NOT NULL AND grade_mixed_res_prelim_dql.StartDateTime > QC_Mod.ApplicableAfter AND grade_mixed_res_prelim_dql.StartDateTime <= QC_Mod.StartDateTime) OR
+    (grade_mixed_res_prelim_dql.StartDateTime <= QC_Mod.StartDateTime AND QC_Mod.groupposition == 1) 
+       OR
+           (grade_mixed_res_prelim_dql.StartDateTime <= QC_Mod.StartDateTime AND QC_Mod.ApplicableAfter IS NULL) 
+       OR
+          (QC_Mod.ApplicableAfter IS NOT NULL AND grade_mixed_res_prelim_dql.StartDateTime > QC_Mod.ApplicableAfter) 
+       OR
     (grade_mixed_res_prelim_dql.StartDateTime > QC_Mod.StartDateTime AND QC_Mod.IsMaxDate == 1)
     )"
 )
@@ -269,6 +284,11 @@ grade_prelim_DQL <- merge(grade_res_prelim_DQL, grade_mixed_result, by = "Result
     -sub_char.y
   ) %>%
   mutate(resactgrp = paste(ResultID, actgrp_char, sep = "-"))
+
+test <- grade_prelim_DQL %>%
+  filter(grepl("0050-",ResultID),
+         CharID == "ec") %>%
+  arrange(CharID, StartDateTime)
 
 
 # Check work:
@@ -423,7 +443,7 @@ print(paste0("Percent successful: ", (nrow(res)/nrow(anom_grade_totals)*100)))
 
 
 # This gets sent back to access for review and update
-write.csv(anom_grade_totals, file = "grabdataforreview.csv")
+write_csv(anom_grade_totals, "grabdataforreview.csv")
 
 
 
