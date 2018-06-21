@@ -443,7 +443,7 @@ print(paste0("Percent successful: ", (nrow(res)/nrow(anom_grade_totals)*100)))
 
 
 # This gets sent back to access for review and update
-write_csv(anom_grade_totals, "grabdataforreview.csv")
+write.csv(anom_grade_totals, file = "grabdataforreview.csv", row.names = FALSE)
 
 
 
